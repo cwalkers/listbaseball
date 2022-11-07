@@ -1,7 +1,7 @@
 '''
-This module scrapes all official web pages for baseball related data. 
+This module scrapes web pages for baseball related data. 
 
-ncaa (class): the class of ncaa related functions
+Ncaa (class): the class of NCAA related functions
 
     schools (function): returns a dataframe of schools in the NCAA with basic information,
         scrapes from: https://www.ncaa.com/schools-index
@@ -122,7 +122,37 @@ class Ncaa:
 
         return schools_df
 
-    def stats(self):
+    def school_id_grabber(self): 
+        '''
+        Function to scrape the url endings for each school. Stores each ending
+        in school_ids (dict), key is name of school, value is url ending that
+        navigates to that school's stats page. Initialize before using stats.
+
+        Inputs: None 
+
+        Returns: school_ids (dict)
+        '''
+
+        school_ids = {} 
+
+        req = Request(
+            url='http://stats.ncaa.org/team/inst_team_list?sport_code=MBA&division=1', 
+            headers={'User-Agent': 'Mozilla/5.0'}
+        )
+        webpage = urlopen(req).read()
+        soup = BeautifulSoup(webpage, 'html.parser')
+
+        id_tags = soup.find_all('a', href=re.compile('/team/'))[2:]
+
+        for ids in id_tags:
+            id = (ids.get('href')).split('/', maxsplit=3)[2]
+            school = ids.text
+            school_ids[school] = id
+
+        return school_ids
+
+    #fix year vals, simplify code
+    def stats(self, school_ids):
         '''
         Scrapes data from the NCAA baseball stats archive:
 
@@ -134,7 +164,7 @@ class Ncaa:
         Each stat type in the list is a dictionary of conditional stats, where the keys
         are conditional stats, and the value is a pandas dataframe.
 
-        E.x: master_stats_all['school name']['year'][0]['with 2 outs'] would return the 
+        E.x. master_stats_all['school name']['year'][0]['with 2 outs'] would return the 
         hitting stats with 2 outs in the given year for the given school
 
         There are 300+ schools, each with 10+ years of statistical history in the archive.
@@ -145,41 +175,9 @@ class Ncaa:
 
         Returns:
             dictionary of schools (dict)
-
         '''
 
-        def school_id_grabber(): 
-            '''
-            Nested function to scrape the url endings for each school. Stores each ending
-            in school_ids (dict), key is name of school, value is url ending that
-            navigates to that school's stats page. Only required locally, necessary for 
-            the encapsulating function.
-
-            Inputs: None 
-
-            Returns: school_ids (dict)
-            '''
-
-            school_ids = {} 
-
-            req = Request(
-                url='http://stats.ncaa.org/team/inst_team_list?sport_code=MBA&division=1', 
-                headers={'User-Agent': 'Mozilla/5.0'}
-            )
-            webpage = urlopen(req).read()
-            soup = BeautifulSoup(webpage, 'html.parser')
-
-            id_tags = soup.find_all('a', href=re.compile('/team/'))[2:]
-
-            for ids in id_tags:
-                id = (ids.get('href')).split('/', maxsplit=3)[2]
-                school = ids.text
-                school_ids[school] = id
-
-            return school_ids
-
         master_stats_all = {}
-        school_ids = school_id_grabber()
 
         #iterate through each school that is available
         for school, id in school_ids.items(): 
@@ -277,10 +275,3 @@ class Ncaa:
             break
 
         return master_stats_all
-
-if __name__ == '__main__':
-    nc = Ncaa()
-    test = nc.stats()
-    print(test)
-
-
