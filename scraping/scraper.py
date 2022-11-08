@@ -183,7 +183,7 @@ class Ncaa:
         for school, id in school_ids.items(): 
 
             master_stats_all[school] = {}
-            year_ids = [] 
+            year_ids = {} 
 
             #obtain the possible years on each school's page
             req = Request(
@@ -195,11 +195,13 @@ class Ncaa:
             
             year_tags = soup.find_all('a', href=re.compile('year_stat_category'))
 
-            for year_tag in year_tags:
-                year_ids.append(year_tag.get('href'))  
+            for year_tag in year_tags[2:]:
+                year_ids[year_tag.text] = (year_tag.get('href'))  
+            
+            year_ids.pop('2010-11')
 
             #iterate through each year of statistics
-            for year_val, year_id in enumerate(year_ids[2:]):
+            for year_val, year_id in year_ids.items():
 
                 hitting = {} 
                 pitching = {}
@@ -269,6 +271,7 @@ class Ncaa:
 
                 #insert into master dictionary by {school: year: {stats}}
                 (master_stats_all[school])[year_val] = [hitting, pitching, fielding]
+                print('scraped {} {}'.format(school, year_val))
 
                 break
 
