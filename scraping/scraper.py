@@ -15,6 +15,7 @@ import pandas as pd
 import regex as re
 import requests
 from urllib.request import Request, urlopen
+from sqlalchemy import create_engine
 
 class Ncaa: 
 
@@ -152,7 +153,7 @@ class Ncaa:
         return school_ids
 
     #fix year vals, simplify code
-    def stats(self, school_ids):
+    def stats(self, school_ids, write=False):
         '''
         Scrapes data from the NCAA baseball stats archive:
 
@@ -198,7 +199,8 @@ class Ncaa:
             for year_tag in year_tags[2:]:
                 year_ids[year_tag.text] = (year_tag.get('href'))  
             
-            year_ids.pop('2010-11')
+            #nodata in this year
+            year_ids.pop('2010-11') 
 
             #iterate through each year of statistics
             for year_val, year_id in year_ids.items():
@@ -269,9 +271,13 @@ class Ncaa:
                 f_table = pd.read_html(webpage)[2]
                 fielding['Fielding'] = f_table
 
+                # need to merge dataframes into some structure that's easy to pass to SQL... 
+                # have to fix pd multindexing/find correct way to merge
+                # df = pd.concat(hitting, axis=1) doesn't work
+
                 #insert into master dictionary by {school: year: {stats}}
                 (master_stats_all[school])[year_val] = [hitting, pitching, fielding]
-                print('scraped {} {}'.format(school, year_val))
+                print('scraped', school, year_val)
 
                 break
 
