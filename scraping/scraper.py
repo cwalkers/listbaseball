@@ -35,10 +35,11 @@ class Ncaa:
 
         Takes multiple minutes to run.
 
-        Inputs: None
+        Inputs: 
+            None
 
-        Returns: dataframe of schools (Pandas Dataframe), where each school has a row of column values. 
-                column values: division, school, school_nickname, city, state, conference, team_name
+        Returns: 
+            schools_df (Pandas Dataframe)
         '''
 
         schools_df = pd.DataFrame()
@@ -129,9 +130,11 @@ class Ncaa:
         in school_ids (dict), key is name of school, value is url ending that
         navigates to that school's stats page. Initialize before using stats.
 
-        Inputs: None 
+        Inputs: 
+            None 
 
-        Returns: school_ids (dict)
+        Returns: 
+            school_ids (dict)
         '''
 
         school_ids = {} 
@@ -152,30 +155,20 @@ class Ncaa:
 
         return school_ids
 
-    #fix year vals, simplify code
     def stats(self, school_ids):
         '''
         Scrapes data from the NCAA baseball stats archive:
 
         http://stats.ncaa.org/team/inst_team_list?sport_code=MBA&division=1
 
-        Creates a dictionary of the available schools on the website. Each school
-        has a nested dictionary for each available year. Within each year, there
-        is a list of dictionaries for each stat type i.e. [Hitting, Pitching, Fielding].
-        Each stat type in the list is a dictionary of conditional stats, where the keys
-        are conditional stats, and the value is a pandas dataframe.
-
-        E.x. master_stats_all['school name']['year'][0]['with 2 outs'] would return the 
-        hitting stats with 2 outs in the given year for the given school
-
         There are 300+ schools, each with 10+ years of statistical history in the archive.
-        It is not reccommended to call this funciton locally.
+        Final dataframe is 1.5million+ lines long. 
 
         Inputs: 
-            None
+            school_ids (dict)
 
         Returns:
-            dictionary of schools (dict)
+            None, writes master_stats (dataframe) to SQL server
         '''
 
         master = {}
