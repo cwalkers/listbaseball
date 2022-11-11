@@ -16,6 +16,7 @@ import regex as re
 import requests
 from urllib.request import Request, urlopen
 from sqlalchemy import create_engine
+from sqlalchemy.types import VARCHAR
 
 class Ncaa: 
 
@@ -279,28 +280,29 @@ class Ncaa:
                 school_dict[year_val] = year_stats
                 print('scraped', school, year_val)
 
-                i += 1
-                if i >= 2: 
-                    break
-
             #concentrate all the years under one school
             school_stats = pd.concat(school_dict, keys=school_dict.keys())
             master[school] = school_stats
-
-            if v >= 2: 
-                break
         
         #concentrate all the schools into one dataframe
         master_stats = pd.concat(master, keys=master.keys())
+        master_stats.index.names = ['school','year','stat','situation', 'num']
+        master_stats.droplevel('num')
 
         #write to sql
 
         engine = create_engine(
-                'mysql://summer:klzercfraqrhkecx'
-                '@baseball-db-cluster-do-user-6778142-0.db.ondigitalocean.com:'
-                '25060/pg?ssl=true&charset=utf8'
+                'mysql+mysqlconnector://summer:klzercfraqrhkecx'
+                '@baseball-db-cluster-do-user-6778142-0.db.ondigitalocean.com:25060/pg'
         )
 
-        master_stats.to_sql('placeholder', con=engine)
+        master_stats.to_sql('NCAA_stats_test', con=engine, if_exists='append', method='multi', chunksize=25000,
+                            dtype={
+                                'school': VARCHAR(master_stats.index.get_level_values('school').str.len().max()), 
+                                'year' : VARCHAR(master_stats.index.get_level_values('year').str.len().max()),
+                                'stat' : VARCHAR(master_stats.index.get_level_values('stat').str.len().max()),
+                                'situation' : VARCHAR(master_stats.index.get_level_values('situation').str.len().max())
+                            }
+          )
 
-        pass
+        return master_stats
