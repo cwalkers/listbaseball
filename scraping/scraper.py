@@ -153,7 +153,7 @@ class Ncaa:
         return school_ids
 
     #fix year vals, simplify code
-    def stats(self, school_ids, write=False):
+    def stats(self, school_ids):
         '''
         Scrapes data from the NCAA baseball stats archive:
 
@@ -178,12 +178,15 @@ class Ncaa:
             dictionary of schools (dict)
         '''
 
-        master_stats_all = {}
+        master = {}
+        v = 0
 
         #iterate through each school that is available
         for school, id in school_ids.items(): 
 
-            master_stats_all[school] = {}
+            v += 1
+            i = 0
+            school_dict = {}
             year_ids = {} 
 
             #obtain the possible years on each school's page
@@ -271,16 +274,40 @@ class Ncaa:
                 f_table = pd.read_html(webpage)[2]
                 fielding['Fielding'] = f_table
 
-                # need to merge dataframes into some structure that's easy to pass to SQL... 
-                # have to fix pd multindexing/find correct way to merge
-                # df = pd.concat(hitting, axis=1) doesn't work
+                #we concentrate the situational stats into one dataframe
+                hitting = pd.concat(hitting, keys=hitting.keys())
+                pitching = pd.concat(pitching, keys=pitching.keys())
+                fielding = pd.concat(fielding, keys=fielding.keys())
 
-                #insert into master dictionary by {school: year: {stats}}
-                (master_stats_all[school])[year_val] = [hitting, pitching, fielding]
+                #then concentrate the stat types into one dataframe, this and the above steps being seperate is 
+                #important for organization in the final table 
+                year_stats = pd.concat([hitting, pitching, fielding], keys=['hitting', 'pitching', 'fielding'])
+
+                school_dict[year_val] = year_stats
                 print('scraped', school, year_val)
 
+                i += 1
+                if i >= 2: 
+                    break
+
+            #concentrate all the years under one school
+            school_stats = pd.concat(school_dict, keys=school_dict.keys())
+            master[school] = school_stats
+
+            if v >= 2: 
                 break
+        
+        #concentrate all the schools into one dataframe
+        master_stats = pd.concat(master, keys=master.keys())
 
-            break
+        #write to sql
 
-        return master_stats_all
+        engine = create_engine(
+                'mysql://summer:klzercfraqrhkecx'
+                '@baseball-db-cluster-do-user-6778142-0.db.ondigitalocean.com:'
+                '25060/pg?ssl=true&charset=utf8'
+        )
+
+        master_stats.to_sql('placeholder', con=engine)
+
+        pass
